@@ -1,7 +1,7 @@
 """Tests for hello function."""
 import pytest
 
-from xli.example import hello
+from xli.cli.example import hello
 
 
 @pytest.mark.parametrize(
