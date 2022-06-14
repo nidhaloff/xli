@@ -111,3 +111,8 @@ build-remove:
 
 .PHONY: cleanup
 cleanup: pycache-remove dsstore-remove mypycache-remove ipynbcheckpoints-remove pytestcache-remove
+
+git:
+	git add .
+	git commit -m "$m"
+	git push
