@@ -9,7 +9,7 @@ import click
 class XLI:
     """XLI is a wrapper class that exposes methods used to convert python scripts to a cli"""
 
-    cli = click.command(lambda: None)
+    cli = click.group(lambda: None)
 
     @classmethod
     def from_func(cls, func):
@@ -47,7 +47,7 @@ class XLI:
     @classmethod
     def from_module(cls, module):
 
-        cli_group = click.command(lambda: None)
+        cli_group = click.group(lambda: None)
         function_list = [func for (_, func) in inspect.getmembers(module, inspect.isfunction)]
         sub_command_name = module.__name__.split(".")[-1]
         for func in function_list:
