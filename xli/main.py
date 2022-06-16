@@ -1,24 +1,24 @@
 import inspect
 import textwrap
-from dataclasses import dataclass
 
-import click
+import typer
 
 
-@dataclass
 class XLI:
     """XLI is a wrapper class that exposes methods used to convert python scripts to a cli"""
 
-    cli = click.group(lambda: None)
+    app = typer.Typer()
 
     @classmethod
     def from_func(cls, func):
-        cls.cli.command()(func)
-        return cls.cli
+        """create a typer cli app from a function"""
+        cls.app.command()(func)
+        return cls.app
 
     @classmethod
     def from_class(cls, _class):
-        cli_group = click.command(lambda: None)
+        """create a typer cli app from a class"""
+        sub_app = typer.Typer()  # init a sub typer app
         class_name = _class.__name__.lower()  # get class name that will be used as a sub command name
         # get all public class methods
         class_methods = [
@@ -38,25 +38,30 @@ class XLI:
                 method = locals()[method_name]
 
             # add method as a command to the sub cli app
-            cli_group.command()(method)
+            sub_app.command()(method)
 
         # add the sub cli app to the root app
-        cls.cli.add_command(cli_group, name=class_name)
-        return cls.cli
+        cls.app.add_typer(sub_app, name=class_name)
+        return cls.app
 
     @classmethod
     def from_module(cls, module):
-
-        cli_group = click.group(lambda: None)
+        """create a typer cli app from a python module"""
+        sub_app = typer.Typer()  # init a sub typer app
         function_list = [func for (_, func) in inspect.getmembers(module, inspect.isfunction)]
         sub_command_name = module.__name__.split(".")[-1]
         for func in function_list:
-            cli_group.command()(func)
-        cls.cli.add_command(cli_group, name=sub_command_name)
-        return cls.cli
+            sub_app.command()(func)
+        cls.app.add_typer(sub_app, name=sub_command_name)
+        return cls.app
 
     @classmethod
     def from_modules(cls, *modules, **kwargs):
+        """create a typer cli app from multiple modules where module name is used as subcommand"""
         for module in modules:
             cls.from_module(module)
-        return cls.cli
+        return cls.app
+
+    @classmethod
+    def from_dir(cls, directory: str):
+        pass
