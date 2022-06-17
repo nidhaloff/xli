@@ -1,4 +1,7 @@
+from typing import Any
+
 import inspect
+import sys
 import textwrap
 
 import typer
@@ -7,24 +10,35 @@ import typer
 class XLI:
     """XLI is a wrapper class that exposes methods used to convert python scripts to a cli"""
 
-    app = typer.Typer()
+    def __init__(self, *objects, **cli_kwargs) -> None:
+        self.app = typer.Typer(**cli_kwargs)
+        self._add_clis_from_objects(*objects)
 
-    @classmethod
-    def from_func(cls, func):
+    def __call__(self, *args: Any, **kwds: Any) -> Any:
+        return self.app(*args, **kwds)
+
+    def _add_clis_from_objects(self, *objects):
+        for obj in objects:
+            if inspect.isclass(obj):
+                self._add_cli_from_class(obj)
+            elif inspect.isfunction(obj):
+                self._add_cli_from_func(obj)
+            elif inspect.ismodule(obj):
+                self._add_cli_from_module(obj)
+
+    def _add_cli_from_func(self, func):
         """create a typer cli app from a function"""
-        cls.app.command()(func)
-        return cls.app
+        self.app.command()(func)
 
-    @classmethod
-    def from_class(cls, _class):
+    def _add_cli_from_class(self, class_):
         """create a typer cli app from a class"""
-        sub_app = typer.Typer()  # init a sub typer app
-        class_name = _class.__name__.lower()  # get class name that will be used as a sub command name
+        sub_app = typer.Typer(help=class_.__doc__)  # init a sub typer app
+        class_name = class_.__name__.lower()  # get class name that will be used as a sub command name
         # get all public class methods
         class_methods = [
-            getattr(_class, func)
-            for func in dir(_class)
-            if callable(getattr(_class, func)) and not func.startswith("__")
+            getattr(class_, func)
+            for func in dir(class_)
+            if callable(getattr(class_, func)) and not func.startswith("__")
         ]
 
         for method in class_methods:
@@ -41,27 +55,18 @@ class XLI:
             sub_app.command()(method)
 
         # add the sub cli app to the root app
-        cls.app.add_typer(sub_app, name=class_name)
-        return cls.app
+        self.app.add_typer(sub_app, name=class_name)
 
-    @classmethod
-    def from_module(cls, module):
+    def _add_cli_from_module(self, module):
         """create a typer cli app from a python module"""
-        sub_app = typer.Typer()  # init a sub typer app
+        sub_app = typer.Typer(help=module.__doc__)  # init a sub typer app
         function_list = [func for (_, func) in inspect.getmembers(module, inspect.isfunction)]
         sub_command_name = module.__name__.split(".")[-1]
         for func in function_list:
             sub_app.command()(func)
-        cls.app.add_typer(sub_app, name=sub_command_name)
-        return cls.app
+        self.app.add_typer(sub_app, name=sub_command_name)
 
-    @classmethod
-    def from_modules(cls, *modules, **kwargs):
+    def _add_cli_from_modules(self, *modules, **kwargs):
         """create a typer cli app from multiple modules where module name is used as subcommand"""
         for module in modules:
-            cls.from_module(module)
-        return cls.app
-
-    @classmethod
-    def from_dir(cls, directory: str):
-        pass
+            self._add_cli_from_module(module)

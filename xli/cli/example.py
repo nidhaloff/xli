@@ -1,3 +1,6 @@
+""" docs for example.py """
+
+
 def static(user: str):
     """static command user greeting"""
     print(f"greeting user: {user}")
