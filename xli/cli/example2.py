@@ -7,3 +7,4 @@ def hello2(person: str):
 
 def sayhi():
     print("Hi....")
+    hello2("philana")

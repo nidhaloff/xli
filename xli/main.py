@@ -11,20 +11,27 @@ class XLI:
     """XLI is a wrapper class that exposes methods used to convert python scripts to a cli"""
 
     def __init__(self, *objects, **cli_kwargs) -> None:
+        # sub clis that will be added to the parent cli app
+        sub_clis = objects
+        if cli_kwargs.get("clis"):
+            sub_clis = cli_kwargs.pop("clis")
+        if cli_kwargs.get("apps"):
+            sub_clis = cli_kwargs.pop("apps")
+
         self.app = typer.Typer(**cli_kwargs)
-        self._add_clis_from_objects(*objects)
+        self._add_clis_from_objects(*sub_clis)
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         return self.app(*args, **kwds)
 
     def _add_clis_from_objects(self, *objects):
-        for obj in objects:
-            if inspect.isclass(obj):
-                self._add_cli_from_class(obj)
-            elif inspect.isfunction(obj):
-                self._add_cli_from_func(obj)
-            elif inspect.ismodule(obj):
-                self._add_cli_from_module(obj)
+        for cli in objects:
+            if inspect.isclass(cli):
+                self._add_cli_from_class(cli)
+            elif inspect.isfunction(cli):
+                self._add_cli_from_func(cli)
+            elif inspect.ismodule(cli):
+                self._add_cli_from_module(cli)
 
     def _add_cli_from_func(self, func):
         """create a typer cli app from a function"""
@@ -51,7 +58,6 @@ class XLI:
                 exec(method_src_code)
                 method = locals()[method_name]
 
-            # add method as a command to the sub cli app
             sub_app.command()(method)
 
         # add the sub cli app to the root app
